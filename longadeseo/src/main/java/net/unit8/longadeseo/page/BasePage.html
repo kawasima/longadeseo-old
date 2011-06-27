@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"
+  xmlns:wicket="http://wicket.apache.org/"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://wicket-contrib.googlecode.com/files/wicket.xsd">
+<head>
+	<meta http-equiv="content-type" content="text/html; charset=utf-8"/>
+	<title wicket:id="pageTitle">longadeseo's page</title>
+	<script type="text/javascript">
+window.onload = function() {
+	if(window.WebSocket) {
+		var ws = new WebSocket("ws://localhost:9090/longadeseo/webdav-message?username=kawasima");
+		ws.addEventListener( "message", function(event) {
+			var obj = eval('('+event.data+')');
+			alert(obj.message);
+		}, false );
+		ws.addEventListener("error", function(e) {
+			alert("えらーっす:" + e);
+		}, false);
+		
+	}
+};
+	</script>
+</head>
+<body>
+<div id="wrap">
+	<div id="header_top">
+		<h1 id="logo">Longadeseo</h1>
+		<ul>
+			<li><a href="#">Users</a></li>
+			<li><a href="#">Documents</a></li>
+			<li><a href="#" wicket:id="linkToPluginRegistry">Settings</a></li>
+		</ul>
+		<div id="slogan">
+			<p>If file server was more ingtelligent, we were more productive.</p>
+		</div>
+	</div>
+
+	<div id="maincontent">
+		<div id="left">
+		<wicket:child>ここに本文がはいります</wicket:child>
+		</div>
+		<div id="footer">
+		</div>
+	</div>
+</div>
+</body>
+</html>

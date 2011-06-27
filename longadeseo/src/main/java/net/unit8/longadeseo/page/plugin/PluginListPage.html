@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"
+  xmlns:wicket="http://wicket.apache.org/"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.w3.org/1999/xhtml http://wicket-contrib.googlecode.com/files/wicket.xsd">
+<head>
+	<meta http-equiv="content-type" content="text/html; charset=utf-8"/>
+	<title>プラグインの一覧</title>
+</head>
+<body>
+	<wicket:extend>
+	<p><wicket:message key="lead">lead</wicket:message></p>
+	<ol>
+		<li id="pluginRegistryList" wicket:id="pluginRegistryList">
+			<form wicket:id="pluginUpdateForm">
+			<dl>
+				<dt><wicket:message key="plugin.name">Name</wicket:message></dt>
+				<dd><span wicket:id="name">Excelの編集者を抜き出し一覧化します</span></dd>
+
+				<dt><wicket:message key="plugin.class">プラグインの実装</wicket:message></dt>
+				<dd><span wicket:id="pluginClass">longadeseo.plugin.JRubyExcelPlugin</span></dd>
+
+				<dt><wicket:message key="plugin.description">Description</wicket:message></dt>
+				<dd>
+					<span wicket:id="description">Excelシートの中から</span>
+				</dd>
+
+				<dt><wicket:message key="plugin.includes">applicable scope</wicket:message></dt>
+				<dd><span wicket:id="pluginIncludes">/**</span></dd>
+
+				<div wicket:id="optionsContainer">
+					<div wicket:id="options">
+						<dt><span wicket:id="name">option name</span></dt>
+						<dd>
+							<span wicket:id="value">option value</span>
+						</dd>
+					</div>
+				</div>
+			</dl>
+			<div>
+				<input type="submit" wicket:id="deleteButton" value="Delete"/>
+				<input type="button" wicket:id="activeButton" value="Inactive"/>
+				<input type="button" wicket:id="testButton" value="Test"/>
+			</div>
+			</form>
+		</li>
+	</ol>
+
+	<form wicket:id="pluginRegistryForm">
+		<fieldset>
+			<legend>新しいプラグイン</legend>
+			<div wicket:id="errorMessages"></div>
+
+			<dl>
+				<dt><wicket:message key="newName">Name</wicket:message></dt>
+				<dd><input wicket:id="newName" type="text" size="30"/></dd>
+
+				<dt><wicket:message key="newClass">Class</wicket:message></dt>
+				<dd><input wicket:id="newClass" type="text" size="50"/> <span wicket:id="newClassWarning">警告！</span></dd>
+
+				<dt><wicket:message key="newDescription">Desctiption</wicket:message></dt>
+				<dd>
+				  <textarea  wicket:id="newDescription" rows="4" cols="80"></textarea>
+				</dd>
+
+				<dt><wicket:message key="newIncludes">applicable scope</wicket:message></dt>
+				<dd>
+				  <input wicket:id="newIncludes" type="text" size="50"/>
+				</dd>
+				<dt>Options</dt>
+				<dd>
+					<div wicket:id="newOptionsContainer">
+						<dl wicket:id="newOptions">
+							<dt><span wicket:id="optionNameLabel">オプション名</span></dt>
+							<dd>
+								<input wicket:id="name" type="hidden"/>
+								<input wicket:id="value"/>
+							</dd>
+						</dl>
+					</div>
+				</dd>
+			</dl>
+			<button type="submit"><wicket:message key="addPlugin"></wicket:message></button>
+		</fieldset>
+	</form>
+	<div wicket:id="testWindow">&nbsp;</div>
+	</wicket:extend>
+</body>
+</html>

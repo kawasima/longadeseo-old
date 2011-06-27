@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<configuration>
+  <appender name="console" class="ch.qos.logback.core.ConsoleAppender">
+    <Target>System.out</Target>
+    <Encoding>UTF-8</Encoding>
+    <layout class="ch.qos.logback.classic.PatternLayout">
+      <Pattern>[%-5level][%d{yyyy-MM-dd HH:mm:ss}] %class - %msg%n</Pattern>
+    </layout>
+  </appender>
+
+  <appender name="logfile" class="ch.qos.logback.core.rolling.RollingFileAppender">
+    <Encoding>UTF-8</Encoding>
+    <File>/logs/webapp.log</File>
+    <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+      <FileNamePattern>/logs/webapp.%d{yyyyMMdd}.log</FileNamePattern>
+      <MaxHistory>2</MaxHistory>
+    </rollingPolicy>
+    <layout class="ch.qos.logback.classic.PatternLayout">
+      <Pattern>[%-5level][%d{yyyy-MM-dd HH:mm:ss}] %class - %msg%n</Pattern>
+    </layout>
+  </appender>
+  
+  <logger name="org.apache.wicket">
+  	<level value="info"/>
+  </logger>
+
+  <logger name="org.apache.jackrabbit">
+  	<level value="info"/>
+  </logger>
+
+  <root>
+    <level value="debug" />
+    <appender-ref ref="console"/>
+    <!--  <appender-ref ref="logfile"/> -->
+  </root>
+
+</configuration>

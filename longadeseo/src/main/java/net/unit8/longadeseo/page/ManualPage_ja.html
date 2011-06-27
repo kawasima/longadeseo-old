@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"
+  xmlns:wicket="http://wicket.apache.org/"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://wicket-contrib.googlecode.com/files/wicket.xsd">
+<head>
+	<meta http-equiv="content-type" content="text/html; charset=utf-8"/>
+	<title>マニュアル</title>
+</head>
+<body>
+	<wicket:extend>
+		<h2>はじめに</h2>
+		<div>
+		<p>
+		Longadeseoは知能をもったファイルサーバです。従来のファイルサーバは自由度が高く複数人でビジネスに使おうとすると、
+		ほぼ確実にカオス状態になりました。ルールを決めても守る守らないは人次第だったからです。
+		Longadeseoは規律を与え、ファイルの状態を常に見守ることができるようになります。
+		</p>
+		<p>
+		またこれまでのファイルサーバは業務フローから分断されていて、ファイルを置くアクションとそのファイルに対するアクションが
+		バラバラになっていました。そのためファイルはたくさん作られているが、後工程の業務が滞りなくおこなわれたかどうかは
+		誰にもわからない状態でした。
+		Longadeseoはファイルをおくと同時にそのあとやらなきゃいけないことを自動的にやってくれます。
+		</p>
+		</div>
+		
+		<h2>セットアップ</h2>
+		<div>
+		<p>
+		Longadeseoは起動すると、WebDAVにアクセスできるようになります。
+		</p>
+		<h3>エラーの通知</h3>
+		<p>Longadeseoで発生したエラーはHTTPレスポンスのステータスラインで表現しますが、
+		WebDAVクライアントによってはエラーの詳細メッセージを表示しないものがあります。
+		このため、Longadeseoではブラウザを経由した独自のメッセージの通知手段を用意しています。
+		</p>
+		<h4>Chromeの場合</h4>
+		<p>このExtensionsをインストールします。</p>
+		<h4>Firefoxの場合</h4>
+		<p></p>
+		</div>
+		
+		<h2>セキュリティ</h2>
+		<div>
+		<p>
+		Longadeseoのファイルに関するアクセス制限は、Jackrabbitの設定にしたがいます。
+		</p>
+		</div>
+		
+		<h2>プラグイン</h2>
+		<div>
+		<p>
+		Longadeseoの規律と知性の源はこのこのプラグインの機能です。
+		</p>
+		<h3>標準で用意されているプラグイン</h3>
+		<dl>
+			<dt>longadeseo.plugin.FilenameCheckPlugin</dt>
+			<dd>ファイル名の命名規約を定めます。規約</dd>
+			
+			<dt>longadeseo.plugin.JRubyExcelPlugin</dt>
+			<dd>置かれたExcelファイルに対して、用意したRubyスクリプトで集計・転記・内容のチェック・ソースコードの自動生成
+			・データベースの最新化・通知などを行います。
+			実行するRubyスクリプトは直接プラグインに書き込むこともできるし、外部ファイルを読み込ませることも可能です</dd>
+
+			<dt>longadeseo.plugin.ClamvPlugin</dt>
+			<dd>Clamvに接続して、ファイルサーバに置かれたファイルのウイルスチェックをおこないます。</dd>
+		</dl>
+		</div>
+		
+		<h2>TODO</h2>
+		<div>
+		<ul>
+			<li>複数のワークスペースが使えるようにする。(いわゆるチーム単位でプラグインの設定などを分けたい場合など、
+			現状ではインスタンスを複数作るしかないが、ワークスペースを分離して)</li>
+			<li>CIFSでアクセスできるようにする。現状はWebDAVでのアクセスのみだが、WindowsのExplorerでアクセスしたいニーズは高い。</li>
+		</ul>
+		</div>
+	</wicket:extend>
+</body>
+</html>

@@ -1,0 +1,56 @@
+<web-app version="3.0" xmlns="http://java.sun.com/xml/ns/javaee"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://java.sun.com/xml/ns/javaee http://java.sun.com/xml/ns/javaee/web-app_3_0.xsd"
+	metadata-complete="true">
+	
+	<servlet>
+		<servlet-name>webdav</servlet-name>
+		<servlet-class>net.unit8.longadeseo.servlet.WebdavServlet</servlet-class>
+<!--
+		<init-param>
+			<param-name>resource-path-prefix</param-name>
+			<param-value>/repository</param-value>
+		</init-param>
+		<init-param>
+			<param-name>repository-home</param-name>
+			<param-value>jackrabbit/repository</param-value>
+		</init-param>
+		<init-param>
+			<param-name>resource-config</param-name>
+			<param-value>/WEB-INF/config.xml</param-value>
+		</init-param>
+-->
+		<load-on-startup>4</load-on-startup>
+	</servlet>
+
+	<!-- This class will run only in Jetty container. -->
+	<servlet>
+		<servlet-name>webdav-message</servlet-name>
+		<servlet-class>net.unit8.longadeseo.servlet.WebdavErrorNotifyServlet</servlet-class>
+	</servlet>
+	
+	
+	<servlet-mapping>
+		<servlet-name>webdav</servlet-name>
+		<url-pattern>/repository/*</url-pattern>
+	</servlet-mapping>
+
+	<servlet-mapping>
+		<servlet-name>webdav-message</servlet-name>
+		<url-pattern>/webdav-message/*</url-pattern>
+	</servlet-mapping>
+
+	<filter>
+		<filter-name>wicketFilter</filter-name>
+		<filter-class>net.unit8.longadeseo.filter.WicketApplication</filter-class>
+		<init-param>
+			<param-name>applicationClassName</param-name>
+			<param-value>net.unit8.longadeseo.application.RepositoryApplication</param-value>
+		</init-param>
+	</filter>
+
+	<filter-mapping>
+		<filter-name>wicketFilter</filter-name>
+		<url-pattern>/app/*</url-pattern>
+	</filter-mapping>
+</web-app>

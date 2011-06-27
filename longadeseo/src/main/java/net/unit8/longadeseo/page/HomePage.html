@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"
+  xmlns:wicket="http://wicket.apache.org/"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://wicket-contrib.googlecode.com/files/wicket.xsd">
+<head>
+	<meta http-equiv="content-type" content="text/html; charset=utf-8"/>
+	<title>ホームページ</title>
+</head>
+<body>
+	<wicket:extend>
+	<form id="searchform" wicket:id="searchForm" method="get">
+		<input type="text" class="search" wicket:id="query" name="q" size="50"/>
+		<input type="submit" class="submit" value="検索""/>
+	</form>
+	<div class="vsc" wicket:id="results">
+		<h6><a wicket:id="titleLink"><span wicket:id="title">タイトルが入ります</span></a></h6>
+		<div wicket:id="excerpt">要約がはいります</div>
+		<span class="f">
+			<cite wicket:id="path">パスが入ります</cite>
+			<span wicket:id="lastModified">最終更新日</span>
+			<span wicket:id="size">ファイルサイズ</span>
+		</span>
+	</div>
+	<div class="navigation" wicket:id="navigation">
+		<span class="separator" wicket:id="separator">|</span>
+		<a wicket:id="pageLink" href="#">
+			<span class="pageNumber" wicket:id="pageNumber">1</span>
+		</a>
+	</div>
+	</wicket:extend>
+</body>
+</html>
