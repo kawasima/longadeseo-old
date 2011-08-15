@@ -19,13 +19,13 @@
       <Pattern>[%-5level][%d{yyyy-MM-dd HH:mm:ss}] %class - %msg%n</Pattern>
     </layout>
   </appender>
-  
+
   <logger name="org.apache.wicket">
   	<level value="info"/>
   </logger>
 
   <logger name="org.apache.jackrabbit">
-  	<level value="info"/>
+  	<level value="debug"/>
   </logger>
 
   <root>

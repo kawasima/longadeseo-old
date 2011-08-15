@@ -1,12 +1,12 @@
 /*******************************************************************************
  * Copyright 2011 kawasima
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -29,8 +29,8 @@ import org.slf4j.LoggerFactory;
 import com.google.inject.Provider;
 
 /**
- * This class inject an JcrSession to service classes 
- * 
+ * This class inject an JcrSession to service classes
+ *
  * @author kawasima
  *
  */
@@ -55,7 +55,7 @@ public class JcrSessionInterceptor implements MethodInterceptor {
 		Session session = null;
 		if(sessionField != null) {
 			logger.debug("session field injection");
-			session = repository.login(new SimpleCredentials("anonymouns", "".toCharArray()), "longadeseo");
+			session = repository.login(new SimpleCredentials("admin", "".toCharArray()), "longadeseo");
 			sessionField.set(invocation.getThis(), session);
 		}
 

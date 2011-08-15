@@ -47,7 +47,7 @@
             security manager:
             class: FQN of class implementing the JackrabbitSecurityManager interface
         -->
-        <SecurityManager class="org.apache.jackrabbit.core.security.simple.SimpleSecurityManager" workspaceName="security">
+        <SecurityManager class="org.apache.jackrabbit.core.DefaultSecurityManager" workspaceName="security">
             <!--
             workspace access:
             class: FQN of class implementing the WorkspaceAccessManager interface
@@ -59,9 +59,11 @@
         <!--
             access manager:
             class: FQN of class implementing the AccessManager interface
-        -->
         <AccessManager class="org.apache.jackrabbit.core.security.simple.SimpleAccessManager">
-            <!-- <param name="config" value="${rep.home}/access.xml"/> -->
+            <param name="config" value="${rep.home}/access.xml"/>
+        </AccessManager>
+        -->
+        <AccessManager class="org.apache.jackrabbit.core.security.DefaultAccessManager">
         </AccessManager>
 
         <LoginModule class="org.apache.jackrabbit.core.security.simple.SimpleLoginModule">
@@ -108,6 +110,10 @@
             <param name="path" value="${wsp.home}/index"/>
             <param name="supportHighlighting" value="true"/>
         </SearchIndex>
+
+        <WorkspaceSecurity>
+            <AccessControlProvider class="org.apache.jackrabbit.core.security.authorization.combined.CombinedProvider" />
+        </WorkspaceSecurity>
     </Workspace>
 
     <!--
