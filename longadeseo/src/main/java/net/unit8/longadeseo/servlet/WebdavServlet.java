@@ -1,12 +1,12 @@
 /*******************************************************************************
  * Copyright 2011 kawasima
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -26,7 +26,6 @@ import javax.jcr.Session;
 import javax.jcr.SimpleCredentials;
 import javax.servlet.ServletContext;
 import javax.servlet.ServletException;
-
 
 import net.unit8.longadeseo.LongadeseoModule;
 import net.unit8.longadeseo.plugin.PluginExecutionException;
@@ -51,10 +50,10 @@ public class WebdavServlet extends
 	private static final Logger logger = LoggerFactory
 			.getLogger(WebdavServlet.class);
 	public static final String PLUGIN_MANAGER_KEY = PluginManager.class.getName();
-	
+
 	/** the guice injector */
 	private transient Injector injector;
-	
+
 	/** the jcr repository */
 	private transient Repository repository;
 
@@ -64,15 +63,13 @@ public class WebdavServlet extends
 		injector = Guice.createInjector(new LongadeseoModule());
 		try {
 			Session session = null;
-			Credentials creds = new SimpleCredentials("anonymous",
-					"".toCharArray());
+			Credentials creds = new SimpleCredentials("admin",
+					"admin".toCharArray());
 			try {
 				session = getRepository().login(creds, "longadeseo");
 			} catch (NoSuchWorkspaceException e) {
 				session = getRepository().login();
 				session.getWorkspace().createWorkspace("longadeseo");
-				session.logout();
-				session = getRepository().login(creds, "longadeseo");
 			}
 			session.logout();
 		} catch (LoginException e) {

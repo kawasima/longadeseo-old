@@ -48,7 +48,7 @@
             class: FQN of class implementing the JackrabbitSecurityManager interface
         -->
         <SecurityManager class="org.apache.jackrabbit.core.DefaultSecurityManager" workspaceName="security">
-            <!--
+            <WorkspaceAccessManager class="org.apache.jackrabbit.core.security.simple.SimpleWorkspaceAccessManager"/>            <!--
             workspace access:
             class: FQN of class implementing the WorkspaceAccessManager interface
             -->
@@ -63,19 +63,9 @@
             <param name="config" value="${rep.home}/access.xml"/>
         </AccessManager>
         -->
-        <AccessManager class="org.apache.jackrabbit.core.security.DefaultAccessManager">
+        <AccessManager class="net.unit8.longadeseo.security.LongadeseoAccessManager">
         </AccessManager>
 
-        <LoginModule class="org.apache.jackrabbit.core.security.simple.SimpleLoginModule">
-           <!--
-              anonymous user name ('anonymous' is the default value)
-            -->
-           <param name="anonymousId" value="anonymous"/>
-           <!--
-              administrator user id (default value if param is missing is 'admin')
-            -->
-           <param name="adminId" value="admin"/>
-        </LoginModule>
     </Security>
 
     <!--
