@@ -1,4 +1,5 @@
 package net.unit8.longadeseo.security;
+
 import java.security.Principal;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -19,6 +20,7 @@ import javax.security.auth.Subject;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlPolicy;
+import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.commons.iterator.AccessControlPolicyIteratorAdapter;
 import org.apache.jackrabbit.core.HierarchyManager;
 import org.apache.jackrabbit.core.id.ItemId;
@@ -40,485 +42,551 @@ import org.apache.jackrabbit.spi.commons.name.PathFactoryImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+public class LongadeseoAccessManager extends AbstractAccessControlManager
+		implements AccessManager {
 
-public class LongadeseoAccessManager extends AbstractAccessControlManager implements AccessManager {
+	private static final Logger log = LoggerFactory
+			.getLogger(LongadeseoAccessManager.class);
 
-    private static final Logger log = LoggerFactory.getLogger(LongadeseoAccessManager.class);
+	private boolean initialized;
 
-    private boolean initialized;
+	private NamePathResolver resolver;
 
-    private NamePathResolver resolver;
+	private Set<Principal> principals;
 
-    private Set<Principal> principals;
+	private AccessControlProvider acProvider;
 
-    private AccessControlProvider acProvider;
+	private AccessControlEditor editor;
 
-    private AccessControlEditor editor;
+	private PrivilegeRegistry privilegeRegistry;
+	private PrivilegeManager privilegeManager;
 
-    private PrivilegeRegistry privilegeRegistry;
+	/**
+	 * the workspace access
+	 */
+	private WorkspaceAccess wspAccess;
 
-    /**
-     * the workspace access
-     */
-    private WorkspaceAccess wspAccess;
+	/**
+	 * the hierarchy manager used to resolve path from itemId
+	 */
+	private HierarchyManager hierMgr;
 
-    /**
-     * the hierarchy manager used to resolve path from itemId
-     */
-    private HierarchyManager hierMgr;
+	/**
+	 * The permissions that apply for the principals, that are present with the
+	 * session subject this manager has been created for. TODO: if the users
+	 * group-membership gets modified the compiledPermissions TODO should ev. be
+	 * recalculated. currently those modifications are only TODO reflected upon
+	 * re-login to the repository.
+	 */
+	private CompiledPermissions compiledPermissions;
 
-    /**
-     * The permissions that apply for the principals, that are present with
-     * the session subject this manager has been created for.
-     * TODO: if the users group-membership gets modified the compiledPermissions
-     * TODO  should ev. be recalculated. currently those modifications are only
-     * TODO  reflected upon re-login to the repository.
-     */
-    private CompiledPermissions compiledPermissions;
+	// ------------------------------------------------------< AccessManager
+	// >---
+	/**
+	 * @see AccessManager#init(AMContext)
+	 */
+	public void init(AMContext amContext) throws AccessDeniedException,
+			Exception {
+		init(amContext, null, null);
+	}
 
-    //------------------------------------------------------< AccessManager >---
-    /**
-     * @see AccessManager#init(AMContext)
-     */
-    public void init(AMContext amContext) throws AccessDeniedException, Exception {
-        init(amContext, null, null);
-    }
+	/**
+	 * @see AccessManager#init(AMContext, AccessControlProvider,
+	 *      WorkspaceAccessManager)
+	 */
+	public void init(AMContext amContext, AccessControlProvider acProvider,
+			WorkspaceAccessManager wspAccessManager)
+			throws AccessDeniedException, Exception {
+		if (initialized) {
+			throw new IllegalStateException("Already initialized.");
+		}
 
-    /**
-     * @see AccessManager#init(AMContext, AccessControlProvider, WorkspaceAccessManager)
-     */
-    public void init(AMContext amContext, AccessControlProvider acProvider,
-                     WorkspaceAccessManager wspAccessManager) throws AccessDeniedException, Exception {
-        if (initialized) {
-            throw new IllegalStateException("Already initialized.");
-        }
+		this.acProvider = acProvider;
 
-        this.acProvider = acProvider;
+		resolver = amContext.getNamePathResolver();
+		hierMgr = amContext.getHierarchyManager();
 
-        resolver = amContext.getNamePathResolver();
-        hierMgr = amContext.getHierarchyManager();
+		Subject subject = amContext.getSubject();
+		if (subject == null) {
+			principals = Collections.emptySet();
+		} else {
+			principals = subject.getPrincipals();
+		}
 
-        Subject subject = amContext.getSubject();
-        if (subject == null) {
-            principals = Collections.emptySet();
-        } else {
-            principals = subject.getPrincipals();
-        }
+		if (StringUtils.equals("longadeseo", amContext.getWorkspaceName())) {
+			principals.add(new SystemPrincipal());
+		}
+		principals.add(new AdminPrincipal("admin"));
 
-        if(StringUtils.equals("longadeseo", amContext.getWorkspaceName())) {
-        	principals.add(new SystemPrincipal());
-        }
-        principals.add(new AdminPrincipal("admin"));
+		wspAccess = new WorkspaceAccess(wspAccessManager,
+				isSystemOrAdmin(subject));
+		privilegeManager = amContext.getPrivilegeManager();
+		privilegeRegistry = new PrivilegeRegistry(resolver);
 
-        wspAccess = new WorkspaceAccess(wspAccessManager, isSystemOrAdmin(subject));
+		if (acProvider != null) {
+			editor = acProvider.getEditor(amContext.getSession());
+			compiledPermissions = acProvider.compilePermissions(principals);
+		} else {
+			log.warn("No AccessControlProvider defined -> no access is granted.");
+			editor = null;
+			compiledPermissions = CompiledPermissions.NO_PERMISSION;
+		}
 
-        privilegeRegistry = new PrivilegeRegistry(resolver);
+		initialized = true;
 
-        if (acProvider != null) {
-            editor = acProvider.getEditor(amContext.getSession());
-            compiledPermissions = acProvider.compilePermissions(principals);
-        } else {
-            log.warn("No AccessControlProvider defined -> no access is granted.");
-            editor = null;
-            compiledPermissions = CompiledPermissions.NO_PERMISSION;
-        }
+		if (!canAccess(amContext.getWorkspaceName())) {
+			throw new AccessDeniedException("Not allowed to access Workspace "
+					+ amContext.getWorkspaceName());
+		}
+	}
 
-        initialized = true;
+	/**
+	 * @see AccessManager#close()
+	 */
+	public void close() throws Exception {
+		if (!initialized) {
+			throw new IllegalStateException("Manager is not initialized.");
+		}
+		initialized = false;
+		compiledPermissions.close();
 
-        if (!canAccess(amContext.getWorkspaceName())) {
-            throw new AccessDeniedException("Not allowed to access Workspace " + amContext.getWorkspaceName());
-        }
-    }
+		hierMgr = null;
+		acProvider = null;
+		editor = null;
+		wspAccess = null;
+	}
 
-    /**
-     * @see AccessManager#close()
-     */
-    public void close() throws Exception {
-        if (!initialized) {
-            throw new IllegalStateException("Manager is not initialized.");
-        }
-        initialized = false;
-        compiledPermissions.close();
+	/**
+	 * @see AccessManager#checkPermission(ItemId, int)
+	 */
+	public void checkPermission(ItemId id, int permissions)
+			throws AccessDeniedException, ItemNotFoundException,
+			RepositoryException {
+		if (!isGranted(id, permissions)) {
+			throw new AccessDeniedException("Access denied.");
+		}
+	}
 
-        hierMgr = null;
-        acProvider = null;
-        editor = null;
-        wspAccess = null;
-    }
+	/**
+	 * @see AccessManager#checkPermission(Path, int)
+	 */
+	public void checkPermission(Path absPath, int permissions)
+			throws AccessDeniedException, RepositoryException {
+		if (!isGranted(absPath, permissions)) {
+			throw new AccessDeniedException("Access denied.");
+		}
+	}
 
-    /**
-     * @see AccessManager#checkPermission(ItemId, int)
-     */
-    public void checkPermission(ItemId id, int permissions) throws AccessDeniedException, ItemNotFoundException, RepositoryException {
-        if (!isGranted(id, permissions)) {
-            throw new AccessDeniedException("Access denied.");
-        }
-    }
+	/**
+	 * @see AccessManager#isGranted(ItemId, int)
+	 */
+	public boolean isGranted(ItemId id, int actions)
+			throws ItemNotFoundException, RepositoryException {
+		checkInitialized();
+		if (actions == READ && compiledPermissions.canReadAll()) {
+			return true;
+		} else {
+			int perm = 0;
+			if ((actions & READ) == READ) {
+				perm |= Permission.READ;
+			}
+			if ((actions & WRITE) == WRITE) {
+				if (id.denotesNode()) {
+					// TODO: check again if correct
+					perm |= Permission.SET_PROPERTY;
+					perm |= Permission.ADD_NODE;
+				} else {
+					perm |= Permission.SET_PROPERTY;
+				}
+			}
+			if ((actions & REMOVE) == REMOVE) {
+				perm |= (id.denotesNode()) ? Permission.REMOVE_NODE
+						: Permission.REMOVE_PROPERTY;
+			}
 
-    /**
-     * @see AccessManager#checkPermission(Path, int)
-     */
-    public void checkPermission(Path absPath, int permissions) throws AccessDeniedException, RepositoryException {
-        if (!isGranted(absPath, permissions)) {
-            throw new AccessDeniedException("Access denied.");
-        }
-    }
+			Path path = hierMgr.getPath(id);
+			return isGranted(path, perm);
+		}
+	}
 
-    /**
-     * @see AccessManager#isGranted(ItemId, int)
-     */
-    public boolean isGranted(ItemId id, int actions)
-            throws ItemNotFoundException, RepositoryException {
-        checkInitialized();
-        if (actions == READ && compiledPermissions.canReadAll()) {
-            return true;
-        } else {
-            int perm = 0;
-            if ((actions & READ) == READ) {
-                perm |= Permission.READ;
-            }
-            if ((actions & WRITE) == WRITE) {
-                if (id.denotesNode()) {
-                    // TODO: check again if correct
-                    perm |= Permission.SET_PROPERTY;
-                    perm |= Permission.ADD_NODE;
-                } else {
-                    perm |= Permission.SET_PROPERTY;
-                }
-            }
-            if ((actions & REMOVE) == REMOVE) {
-                perm |= (id.denotesNode()) ? Permission.REMOVE_NODE : Permission.REMOVE_PROPERTY;
-            }
+	/**
+	 * @see AccessManager#isGranted(Path, int)
+	 */
+	public boolean isGranted(Path absPath, int permissions)
+			throws RepositoryException {
+		checkInitialized();
+		if (!absPath.isAbsolute()) {
+			throw new RepositoryException("Absolute path expected");
+		}
+		return compiledPermissions.grants(absPath, permissions);
+	}
 
-            Path path = hierMgr.getPath(id);
-            return isGranted(path, perm);
-        }
-    }
+	/**
+	 * @see AccessManager#isGranted(Path, Name, int)
+	 */
+	public boolean isGranted(Path parentPath, Name childName, int permissions)
+			throws RepositoryException {
+		Path p = PathFactoryImpl.getInstance().create(parentPath, childName,
+				true);
+		return isGranted(p, permissions);
+	}
 
-    /**
-     * @see AccessManager#isGranted(Path, int)
-     */
-    public boolean isGranted(Path absPath, int permissions) throws RepositoryException {
-        checkInitialized();
-        if (!absPath.isAbsolute()) {
-            throw new RepositoryException("Absolute path expected");
-        }
-        return compiledPermissions.grants(absPath, permissions);
-    }
+	/**
+	 * @see AccessManager#canRead(org.apache.jackrabbit.spi.Path,org.apache.jackrabbit.core.id.ItemId)
+	 */
+	public boolean canRead(Path itemPath, ItemId itemId)
+			throws RepositoryException {
+		checkInitialized();
+		if (compiledPermissions.canReadAll()) {
+			return true;
+		} else {
+			return compiledPermissions.canRead(itemPath, itemId);
+		}
+	}
 
-    /**
-     * @see AccessManager#isGranted(Path, Name, int)
-     */
-    public boolean isGranted(Path parentPath, Name childName, int permissions) throws RepositoryException {
-        Path p = PathFactoryImpl.getInstance().create(parentPath, childName, true);
-        return isGranted(p, permissions);
-    }
+	/**
+	 * @see AccessManager#canAccess(String)
+	 */
+	public boolean canAccess(String workspaceName) throws RepositoryException {
+		checkInitialized();
+		return wspAccess.canAccess(workspaceName);
+	}
 
-    /**
-     * @see AccessManager#canRead(org.apache.jackrabbit.spi.Path,org.apache.jackrabbit.core.id.ItemId)
-     */
-    public boolean canRead(Path itemPath, ItemId itemId) throws RepositoryException {
-        checkInitialized();
-        if (compiledPermissions.canReadAll()) {
-            return true;
-        } else {
-            return compiledPermissions.canRead(itemPath, itemId);
-        }
-    }
+	// -----------------------------------------------< AccessControlManager
+	// >---
+	/**
+	 * @see javax.jcr.security.AccessControlManager#hasPrivileges(String,
+	 *      Privilege[])
+	 */
+	public boolean hasPrivileges(String absPath, Privilege[] privileges)
+			throws PathNotFoundException, RepositoryException {
+		checkInitialized();
+		checkValidNodePath(absPath);
+		if (privileges == null || privileges.length == 0) {
+			// null or empty privilege array -> return true
+			log.debug("No privileges passed -> allowed.");
+			return true;
+		} else {
+			int privs = PrivilegeRegistry.getBits(privileges);
+			Path p = resolver.getQPath(absPath);
+			return (compiledPermissions.getPrivileges(p) | ~privs) == -1;
+		}
+	}
 
-    /**
-     * @see AccessManager#canAccess(String)
-     */
-    public boolean canAccess(String workspaceName) throws RepositoryException {
-        checkInitialized();
-        return wspAccess.canAccess(workspaceName);
-    }
+	/**
+	 * @see javax.jcr.security.AccessControlManager#getPrivileges(String)
+	 */
+	public Privilege[] getPrivileges(String absPath)
+			throws PathNotFoundException, RepositoryException {
+		checkInitialized();
+		checkValidNodePath(absPath);
+		int bits = compiledPermissions
+				.getPrivileges(resolver.getQPath(absPath));
+		return (bits == PrivilegeRegistry.NO_PRIVILEGE) ? new Privilege[0]
+				: privilegeRegistry.getPrivileges(bits);
+	}
 
-    //-----------------------------------------------< AccessControlManager >---
-    /**
-     * @see javax.jcr.security.AccessControlManager#hasPrivileges(String, Privilege[])
-     */
-    public boolean hasPrivileges(String absPath, Privilege[] privileges) throws PathNotFoundException, RepositoryException {
-        checkInitialized();
-        checkValidNodePath(absPath);
-        if (privileges == null || privileges.length == 0) {
-            // null or empty privilege array -> return true
-            log.debug("No privileges passed -> allowed.");
-            return true;
-        } else {
-            int privs = PrivilegeRegistry.getBits(privileges);
-            Path p = resolver.getQPath(absPath);
-            return (compiledPermissions.getPrivileges(p) | ~privs) == -1;
-        }
-    }
+	/**
+	 * @see javax.jcr.security.AccessControlManager#getPolicies(String)
+	 */
+	@Override
+	public AccessControlPolicy[] getPolicies(String absPath)
+			throws PathNotFoundException, AccessDeniedException,
+			RepositoryException {
+		checkInitialized();
+		checkPermission(absPath, Permission.READ_AC);
 
-    /**
-     * @see javax.jcr.security.AccessControlManager#getPrivileges(String)
-     */
-    public Privilege[] getPrivileges(String absPath) throws PathNotFoundException, RepositoryException {
-        checkInitialized();
-        checkValidNodePath(absPath);
-        int bits = compiledPermissions.getPrivileges(resolver.getQPath(absPath));
-        return (bits == PrivilegeRegistry.NO_PRIVILEGE) ?
-                new Privilege[0] :
-                privilegeRegistry.getPrivileges(bits);
-    }
+		AccessControlPolicy[] policies;
+		if (editor != null) {
+			policies = editor.getPolicies(absPath);
+		} else {
+			policies = new AccessControlPolicy[0];
+		}
+		return policies;
+	}
 
-    /**
-     * @see javax.jcr.security.AccessControlManager#getPolicies(String)
-     */
-    @Override
-    public AccessControlPolicy[] getPolicies(String absPath) throws PathNotFoundException, AccessDeniedException, RepositoryException {
-        checkInitialized();
-        checkPermission(absPath, Permission.READ_AC);
+	/**
+	 * @see javax.jcr.security.AccessControlManager#getEffectivePolicies(String)
+	 */
+	public AccessControlPolicy[] getEffectivePolicies(String absPath)
+			throws PathNotFoundException, AccessDeniedException,
+			RepositoryException {
+		checkInitialized();
+		checkPermission(absPath, Permission.READ_AC);
 
-        AccessControlPolicy[] policies;
-        if (editor != null) {
-            policies = editor.getPolicies(absPath);
-        } else {
-            policies = new AccessControlPolicy[0];
-        }
-        return policies;
-    }
+		return acProvider.getEffectivePolicies(getPath(absPath),
+				compiledPermissions);
+	}
 
-    /**
-     * @see javax.jcr.security.AccessControlManager#getEffectivePolicies(String)
-     */
-    public AccessControlPolicy[] getEffectivePolicies(String absPath) throws PathNotFoundException, AccessDeniedException, RepositoryException {
-        checkInitialized();
-        checkPermission(absPath, Permission.READ_AC);
+	/**
+	 * @see javax.jcr.security.AccessControlManager#getApplicablePolicies(String)
+	 */
+	@Override
+	public AccessControlPolicyIterator getApplicablePolicies(String absPath)
+			throws PathNotFoundException, AccessDeniedException,
+			RepositoryException {
+		checkInitialized();
+		checkPermission(absPath, Permission.READ_AC);
 
-        return acProvider.getEffectivePolicies(getPath(absPath), compiledPermissions);
-    }
+		if (editor != null) {
+			try {
+				AccessControlPolicy[] applicable = editor
+						.editAccessControlPolicies(absPath);
+				return new AccessControlPolicyIteratorAdapter(
+						Arrays.asList(applicable));
+			} catch (AccessControlException e) {
+				log.debug("No applicable policy at " + absPath);
+			}
+		}
+		// no applicable policies -> return empty iterator.
+		return AccessControlPolicyIteratorAdapter.EMPTY;
+	}
 
-    /**
-     * @see javax.jcr.security.AccessControlManager#getApplicablePolicies(String)
-     */
-    @Override
-    public AccessControlPolicyIterator getApplicablePolicies(String absPath) throws PathNotFoundException, AccessDeniedException, RepositoryException {
-        checkInitialized();
-        checkPermission(absPath, Permission.READ_AC);
+	/**
+	 * @see javax.jcr.security.AccessControlManager#setPolicy(String,
+	 *      AccessControlPolicy)
+	 */
+	@Override
+	public void setPolicy(String absPath, AccessControlPolicy policy)
+			throws PathNotFoundException, AccessControlException,
+			AccessDeniedException, RepositoryException {
+		checkInitialized();
+		checkPermission(absPath, Permission.MODIFY_AC);
+		if (editor == null) {
+			throw new UnsupportedRepositoryOperationException(
+					"Modification of AccessControlPolicies is not supported. ");
+		}
+		editor.setPolicy(absPath, policy);
+	}
 
-        if (editor != null) {
-            try {
-                AccessControlPolicy[] applicable = editor.editAccessControlPolicies(absPath);
-                return new AccessControlPolicyIteratorAdapter(Arrays.asList(applicable));
-            } catch (AccessControlException e) {
-                log.debug("No applicable policy at " + absPath);
-            }
-        }
-        // no applicable policies -> return empty iterator.
-        return AccessControlPolicyIteratorAdapter.EMPTY;
-    }
+	/**
+	 * @see javax.jcr.security.AccessControlManager#removePolicy(String,
+	 *      AccessControlPolicy)
+	 */
+	@Override
+	public void removePolicy(String absPath, AccessControlPolicy policy)
+			throws PathNotFoundException, AccessControlException,
+			AccessDeniedException, RepositoryException {
+		checkInitialized();
+		checkPermission(absPath, Permission.MODIFY_AC);
+		if (editor == null) {
+			throw new UnsupportedRepositoryOperationException(
+					"Removal of AccessControlPolicies is not supported.");
+		}
+		editor.removePolicy(absPath, policy);
+	}
 
-    /**
-     * @see javax.jcr.security.AccessControlManager#setPolicy(String, AccessControlPolicy)
-     */
-    @Override
-    public void setPolicy(String absPath, AccessControlPolicy policy) throws PathNotFoundException, AccessControlException, AccessDeniedException, RepositoryException {
-        checkInitialized();
-        checkPermission(absPath, Permission.MODIFY_AC);
-        if (editor == null) {
-            throw new UnsupportedRepositoryOperationException("Modification of AccessControlPolicies is not supported. ");
-        }
-        editor.setPolicy(absPath, policy);
-    }
+	// -------------------------------------< JackrabbitAccessControlManager
+	// >---
+	/**
+	 * @see org.apache.jackrabbit.api.security.JackrabbitAccessControlManager#getApplicablePolicies(Principal)
+	 */
+	@Override
+	public JackrabbitAccessControlPolicy[] getApplicablePolicies(
+			Principal principal) throws AccessDeniedException,
+			AccessControlException, UnsupportedRepositoryOperationException,
+			RepositoryException {
+		checkInitialized();
+		if (editor == null) {
+			throw new UnsupportedRepositoryOperationException(
+					"Editing of access control policies is not supported.");
+		}
+		return editor.editAccessControlPolicies(principal);
+	}
 
-    /**
-     * @see javax.jcr.security.AccessControlManager#removePolicy(String, AccessControlPolicy)
-     */
-    @Override
-    public void removePolicy(String absPath, AccessControlPolicy policy) throws PathNotFoundException, AccessControlException, AccessDeniedException, RepositoryException {
-        checkInitialized();
-        checkPermission(absPath, Permission.MODIFY_AC);
-        if (editor == null) {
-            throw new UnsupportedRepositoryOperationException("Removal of AccessControlPolicies is not supported.");
-        }
-        editor.removePolicy(absPath, policy);
-    }
+	/**
+	 * @see org.apache.jackrabbit.api.security.JackrabbitAccessControlManager#getPolicies(Principal)
+	 */
+	@Override
+	public JackrabbitAccessControlPolicy[] getPolicies(Principal principal)
+			throws AccessDeniedException, AccessControlException,
+			UnsupportedRepositoryOperationException, RepositoryException {
+		checkInitialized();
+		if (editor == null) {
+			throw new UnsupportedRepositoryOperationException(
+					"Editing of access control policies is not supported.");
+		}
+		return editor.getPolicies(principal);
+	}
 
-    //-------------------------------------< JackrabbitAccessControlManager >---
-    /**
-     * @see org.apache.jackrabbit.api.security.JackrabbitAccessControlManager#getApplicablePolicies(Principal)
-     */
-    @Override
-    public JackrabbitAccessControlPolicy[] getApplicablePolicies(Principal principal) throws AccessDeniedException, AccessControlException, UnsupportedRepositoryOperationException, RepositoryException {
-        checkInitialized();
-        if (editor == null) {
-            throw new UnsupportedRepositoryOperationException("Editing of access control policies is not supported.");
-        }
-        return editor.editAccessControlPolicies(principal);
-    }
+	/**
+	 * @see org.apache.jackrabbit.api.security.JackrabbitAccessControlManager#getEffectivePolicies(Set)
+	 */
+	public AccessControlPolicy[] getEffectivePolicies(Set<Principal> principals)
+			throws AccessDeniedException, AccessControlException,
+			UnsupportedRepositoryOperationException, RepositoryException {
+		checkInitialized();
+		return acProvider.getEffectivePolicies(principals, compiledPermissions);
+	}
 
-    /**
-     * @see org.apache.jackrabbit.api.security.JackrabbitAccessControlManager#getPolicies(Principal)
-     */
-    @Override
-    public JackrabbitAccessControlPolicy[] getPolicies(Principal principal) throws AccessDeniedException, AccessControlException, UnsupportedRepositoryOperationException, RepositoryException {
-        checkInitialized();
-        if (editor == null) {
-            throw new UnsupportedRepositoryOperationException("Editing of access control policies is not supported.");
-        }
-        return editor.getPolicies(principal);
-    }
+	/**
+	 * @see org.apache.jackrabbit.api.security.JackrabbitAccessControlManager#hasPrivileges(String,
+	 *      Set, Privilege[])
+	 */
+	public boolean hasPrivileges(String absPath, Set<Principal> principals,
+			Privilege[] privileges) throws PathNotFoundException,
+			RepositoryException {
+		checkInitialized();
+		checkValidNodePath(absPath);
+		checkPermission(absPath, Permission.READ_AC);
 
-    /**
-     * @see org.apache.jackrabbit.api.security.JackrabbitAccessControlManager#getEffectivePolicies(Set)
-     */
-    public AccessControlPolicy[] getEffectivePolicies(Set<Principal> principals) throws AccessDeniedException, AccessControlException, UnsupportedRepositoryOperationException, RepositoryException {
-        checkInitialized();
-        return acProvider.getEffectivePolicies(principals, compiledPermissions);
-    }
+		if (privileges == null || privileges.length == 0) {
+			// null or empty privilege array -> return true
+			log.debug("No privileges passed -> allowed.");
+			return true;
+		} else {
+			int privs = PrivilegeRegistry.getBits(privileges);
+			Path p = resolver.getQPath(absPath);
+			CompiledPermissions perms = acProvider
+					.compilePermissions(principals);
+			try {
+				return (perms.getPrivileges(p) | ~privs) == -1;
+			} finally {
+				perms.close();
+			}
+		}
+	}
 
-    /**
-     * @see org.apache.jackrabbit.api.security.JackrabbitAccessControlManager#hasPrivileges(String, Set, Privilege[])
-     */
-    public boolean hasPrivileges(String absPath, Set<Principal> principals, Privilege[] privileges) throws PathNotFoundException, RepositoryException {
-        checkInitialized();
-        checkValidNodePath(absPath);
-        checkPermission(absPath, Permission.READ_AC);
+	/**
+	 * @see org.apache.jackrabbit.api.security.JackrabbitAccessControlManager#getPrivileges(String,
+	 *      Set)
+	 */
+	public Privilege[] getPrivileges(String absPath, Set<Principal> principals)
+			throws PathNotFoundException, RepositoryException {
+		checkInitialized();
+		checkValidNodePath(absPath);
+		checkPermission(absPath, Permission.READ_AC);
 
-        if (privileges == null || privileges.length == 0) {
-            // null or empty privilege array -> return true
-            log.debug("No privileges passed -> allowed.");
-            return true;
-        } else {
-            int privs = PrivilegeRegistry.getBits(privileges);
-            Path p = resolver.getQPath(absPath);
-            CompiledPermissions perms = acProvider.compilePermissions(principals);
-            try {
-                return (perms.getPrivileges(p) | ~privs) == -1;
-            } finally {
-                perms.close();
-            }
-        }
-    }
+		CompiledPermissions perms = acProvider.compilePermissions(principals);
+		try {
+			int bits = perms.getPrivileges(resolver.getQPath(absPath));
+			return (bits == PrivilegeRegistry.NO_PRIVILEGE) ? new Privilege[0]
+					: privilegeRegistry.getPrivileges(bits);
+		} finally {
+			perms.close();
+		}
+	}
 
-    /**
-     * @see org.apache.jackrabbit.api.security.JackrabbitAccessControlManager#getPrivileges(String, Set)
-     */
-    public Privilege[] getPrivileges(String absPath, Set<Principal> principals) throws PathNotFoundException, RepositoryException {
-        checkInitialized();
-        checkValidNodePath(absPath);
-        checkPermission(absPath, Permission.READ_AC);
+	// ---------------------------------------< AbstractAccessControlManager
+	// >---
+	/**
+	 * @see AbstractAccessControlManager#checkInitialized()
+	 */
+	@Override
+	protected void checkInitialized() {
+		if (!initialized) {
+			throw new IllegalStateException("not initialized");
+		}
+	}
 
-        CompiledPermissions perms = acProvider.compilePermissions(principals);
-        try {
-            int bits = perms.getPrivileges(resolver.getQPath(absPath));
-            return (bits == PrivilegeRegistry.NO_PRIVILEGE) ?
-                    new Privilege[0] :
-                    privilegeRegistry.getPrivileges(bits);
-        } finally {
-            perms.close();
-        }
-    }
+	/**
+	 * @see AbstractAccessControlManager#checkValidNodePath(String)
+	 */
+	@Override
+	protected void checkValidNodePath(String absPath)
+			throws PathNotFoundException, RepositoryException {
+		Path p = resolver.getQPath(absPath);
+		if (!p.isAbsolute()) {
+			throw new RepositoryException("Absolute path expected.");
+		}
+		if (hierMgr.resolveNodePath(p) == null) {
+			throw new PathNotFoundException("No such node " + absPath);
+		}
+	}
 
-    //---------------------------------------< AbstractAccessControlManager >---
-    /**
-     * @see AbstractAccessControlManager#checkInitialized()
-     */
-    @Override
-    protected void checkInitialized() {
-        if (!initialized) {
-            throw new IllegalStateException("not initialized");
-        }
-    }
+	/**
+	 * @see AbstractAccessControlManager#checkPermission(String,int)
+	 */
+	@Override
+	protected void checkPermission(String absPath, int permission)
+			throws AccessDeniedException, RepositoryException {
+		checkValidNodePath(absPath);
+		Path p = resolver.getQPath(absPath);
+		if (!compiledPermissions.grants(p, permission)) {
+			throw new AccessDeniedException("Access denied at " + absPath);
+		}
+	}
 
-    /**
-     * @see AbstractAccessControlManager#checkValidNodePath(String)
-     */
-    @Override
-    protected void checkValidNodePath(String absPath) throws PathNotFoundException, RepositoryException {
-        Path p = resolver.getQPath(absPath);
-        if (!p.isAbsolute()) {
-            throw new RepositoryException("Absolute path expected.");
-        }
-        if (hierMgr.resolveNodePath(p) == null) {
-            throw new PathNotFoundException("No such node " + absPath);
-        }
-    }
+	// ------------------------------------------------------------< private
+	// >---
+	private Path getPath(String absPath) throws RepositoryException {
+		return resolver.getQPath(absPath);
+	}
 
-    /**
-     * @see AbstractAccessControlManager#checkPermission(String,int)
-     */
-    @Override
-    protected void checkPermission(String absPath, int permission) throws AccessDeniedException, RepositoryException {
-        checkValidNodePath(absPath);
-        Path p = resolver.getQPath(absPath);
-        if (!compiledPermissions.grants(p, permission)) {
-            throw new AccessDeniedException("Access denied at " + absPath);
-        }
-    }
+	/**
+	 * @param subject
+	 *            The subject associated with the session.
+	 * @return if created with system-privileges
+	 */
+	private static boolean isSystemOrAdmin(Subject subject) {
+		if (subject == null) {
+			return false;
+		} else {
+			return !(subject.getPrincipals(SystemPrincipal.class).isEmpty() && subject
+					.getPrincipals(AdminPrincipal.class).isEmpty());
+		}
+	}
 
-    /**
-     * @see AbstractAccessControlManager#getPrivilegeRegistry()
-     */
-    @Override
-    protected PrivilegeRegistry getPrivilegeRegistry() throws RepositoryException {
-        checkInitialized();
-        return privilegeRegistry;
-    }
+	// --------------------------------------------------------------------------
+	/**
+	 * Simple wrapper around the repository's
+	 * <code>WorkspaceAccessManager</code> that remembers for which workspaces
+	 * the access has already been evaluated.
+	 */
+	private class WorkspaceAccess {
 
-    //------------------------------------------------------------< private >---
-    private Path getPath(String absPath) throws RepositoryException {
-        return resolver.getQPath(absPath);
-    }
+		private final WorkspaceAccessManager wspAccessManager;
 
-    /**
-     * @param subject The subject associated with the session.
-     * @return if created with system-privileges
-     */
-    private static boolean isSystemOrAdmin(Subject subject) {
-        if (subject == null) {
-            return false;
-        } else {
-            return !(subject.getPrincipals(SystemPrincipal.class).isEmpty() &&
-                     subject.getPrincipals(AdminPrincipal.class).isEmpty());
-        }
-    }
+		private final boolean isAdmin;
+		// TODO: entries must be cleared if access permission to wsp changes.
+		private final List<String> allowed;
+		private final List<String> denied;
 
-    //--------------------------------------------------------------------------
-    /**
-     * Simple wrapper around the repository's <code>WorkspaceAccessManager</code>
-     * that remembers for which workspaces the access has already been
-     * evaluated.
-     */
-    private class WorkspaceAccess {
+		private WorkspaceAccess(WorkspaceAccessManager wspAccessManager,
+				boolean isAdmin) {
+			this.wspAccessManager = wspAccessManager;
+			this.isAdmin = isAdmin;
+			if (!isAdmin) {
+				allowed = new ArrayList<String>(5);
+				denied = new ArrayList<String>(5);
+			} else {
+				allowed = denied = null;
+			}
+		}
 
-        private final WorkspaceAccessManager wspAccessManager;
+		private boolean canAccess(String workspaceName)
+				throws RepositoryException {
+			if (isAdmin || wspAccessManager == null
+					|| allowed.contains(workspaceName)) {
+				return true;
+			} else if (denied.contains(workspaceName)) {
+				return false;
+			}
 
-        private final boolean isAdmin;
-        // TODO: entries must be cleared if access permission to wsp changes.
-        private final List <String>allowed;
-        private final List<String> denied;
+			// not yet tested -> ask the workspace-accessmanager.
+			boolean canAccess = wspAccessManager.grants(principals,
+					workspaceName);
+			if (canAccess) {
+				allowed.add(workspaceName);
+			} else {
+				denied.add(workspaceName);
+			}
+			return canAccess;
+		}
+	}
 
-        private WorkspaceAccess(WorkspaceAccessManager wspAccessManager,
-                                boolean isAdmin) {
-            this.wspAccessManager = wspAccessManager;
-            this.isAdmin = isAdmin;
-            if (!isAdmin) {
-                allowed = new ArrayList<String>(5);
-                denied = new ArrayList<String>(5);
-            } else {
-                allowed = denied = null;
-            }
-        }
+	public void checkRepositoryPermission(int permissions)
+			throws AccessDeniedException, RepositoryException {
+		checkInitialized();
+		if (!compiledPermissions.grants(null, permissions)) {
+			throw new AccessDeniedException("Access denied.");
+		}
 
-        private boolean canAccess(String workspaceName) throws RepositoryException {
-            if (isAdmin || wspAccessManager == null || allowed.contains(workspaceName)) {
-                return true;
-            } else if (denied.contains(workspaceName)) {
-                return false;
-            }
+	}
 
-            // not yet tested -> ask the workspace-accessmanager.
-            boolean canAccess = wspAccessManager.grants(principals, workspaceName);
-            if (canAccess) {
-                allowed.add(workspaceName);
-            } else {
-                denied.add(workspaceName);
-            }
-            return canAccess;
-        }
-    }
+	@Override
+	protected PrivilegeManager getPrivilegeManager() throws RepositoryException {
+		checkInitialized();
+		return privilegeManager;
+	}
 }

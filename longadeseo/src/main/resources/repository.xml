@@ -66,6 +66,9 @@
         <AccessManager class="net.unit8.longadeseo.security.LongadeseoAccessManager">
         </AccessManager>
 
+        <LoginModule class="net.unit8.longadeseo.security.AnonymousLoginModule">
+        </LoginModule>
+
     </Security>
 
     <!--
