@@ -68,7 +68,7 @@ public class WebdavServlet extends
 			try {
 				session = getRepository().login(creds, "longadeseo");
 			} catch (NoSuchWorkspaceException e) {
-				session = getRepository().login();
+				session = getRepository().login(creds);
 				session.getWorkspace().createWorkspace("longadeseo");
 			}
 			session.logout();

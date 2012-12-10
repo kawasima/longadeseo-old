@@ -1,0 +1,3 @@
+target
+derby.log
+**/src/main/webapp/WEB-INF/classes

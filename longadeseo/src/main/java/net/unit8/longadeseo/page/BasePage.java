@@ -18,13 +18,22 @@ package net.unit8.longadeseo.page;
 
 import net.unit8.longadeseo.page.plugin.PluginListPage;
 
-import org.apache.wicket.markup.html.CSSPackageResource;
+import org.apache.wicket.markup.head.CssReferenceHeaderItem;
+import org.apache.wicket.markup.head.IHeaderResponse;
 import org.apache.wicket.markup.html.WebPage;
 import org.apache.wicket.markup.html.link.Link;
+import org.apache.wicket.request.resource.CssResourceReference;
 
+@SuppressWarnings("serial")
 public class BasePage extends WebPage {
+	private static final CssResourceReference STYLE_CSS = new CssResourceReference(PluginListPage.class, "style.css");
+
+	@Override
+	public void renderHead(IHeaderResponse response) {
+		response.render(CssReferenceHeaderItem.forReference(STYLE_CSS));
+	}
+
 	public BasePage() {
-		add(CSSPackageResource.getHeaderContribution("stylesheets/style.css"));
 		add(new Link<String>("linkToPluginRegistry") {
 			private static final long serialVersionUID = 1L;
 

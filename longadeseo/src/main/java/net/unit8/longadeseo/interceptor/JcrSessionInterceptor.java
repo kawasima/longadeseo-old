@@ -55,7 +55,7 @@ public class JcrSessionInterceptor implements MethodInterceptor {
 		Session session = null;
 		if(sessionField != null) {
 			logger.debug("session field injection");
-			session = repository.login(new SimpleCredentials("admin", "admin".toCharArray()), "longadeseo");
+			session = repository.login(new SimpleCredentials("admin", "admin".toCharArray()),"longadeseo");
 			sessionField.set(invocation.getThis(), session);
 		}
 

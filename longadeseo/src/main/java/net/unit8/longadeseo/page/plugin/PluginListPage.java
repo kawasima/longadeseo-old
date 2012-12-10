@@ -1,12 +1,12 @@
 /*******************************************************************************
  * Copyright 2011 kawasima
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -20,7 +20,6 @@ import java.util.List;
 
 import javax.jcr.Value;
 
-
 import net.unit8.longadeseo.RepositoryRuntimeException;
 import net.unit8.longadeseo.dto.PluginOptionEntry;
 import net.unit8.longadeseo.dto.PluginRegistry;
@@ -32,16 +31,17 @@ import net.unit8.longadeseo.servlet.WebdavServlet;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.jackrabbit.value.ValueFactoryImpl;
+import org.apache.wicket.AttributeModifier;
 import org.apache.wicket.Page;
 import org.apache.wicket.ajax.AjaxRequestTarget;
 import org.apache.wicket.ajax.form.AjaxFormComponentUpdatingBehavior;
 import org.apache.wicket.ajax.markup.html.form.AjaxButton;
-import org.apache.wicket.behavior.SimpleAttributeModifier;
 import org.apache.wicket.extensions.ajax.markup.html.AjaxEditableLabel;
 import org.apache.wicket.extensions.ajax.markup.html.AjaxEditableMultiLineLabel;
 import org.apache.wicket.extensions.ajax.markup.html.modal.ModalWindow;
-import org.apache.wicket.markup.html.CSSPackageResource;
-import org.apache.wicket.markup.html.JavascriptPackageResource;
+import org.apache.wicket.markup.head.CssReferenceHeaderItem;
+import org.apache.wicket.markup.head.IHeaderResponse;
+import org.apache.wicket.markup.head.JavaScriptReferenceHeaderItem;
 import org.apache.wicket.markup.html.WebMarkupContainer;
 import org.apache.wicket.markup.html.basic.Label;
 import org.apache.wicket.markup.html.form.Button;
@@ -57,29 +57,34 @@ import org.apache.wicket.model.IModel;
 import org.apache.wicket.model.Model;
 import org.apache.wicket.model.PropertyModel;
 import org.apache.wicket.protocol.http.WebApplication;
+import org.apache.wicket.request.resource.CssResourceReference;
+import org.apache.wicket.request.resource.JavaScriptResourceReference;
 import org.apache.wicket.util.value.ValueMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.inject.Inject;
 
+@SuppressWarnings("serial")
 public class PluginListPage extends BasePage {
 	private static final Logger logger = LoggerFactory.getLogger(PluginListPage.class);
+	private static final JavaScriptResourceReference CODEMIRROR_JS = new JavaScriptResourceReference(PluginListPage.class, "codemirror.js");
+	private static final CssResourceReference CODEMIRROR_CSS = new CssResourceReference(PluginListPage.class, "codemirror.css");
+
 	@Inject
 	PluginRegistryService pluginRegistryService;
 
 	private List<PluginRegistry> pluginRegistryList;
 
+	@Override
+	public void renderHead(IHeaderResponse response) {
+		response.render(JavaScriptReferenceHeaderItem.forReference(CODEMIRROR_JS));
+		response.render(CssReferenceHeaderItem.forReference(CODEMIRROR_CSS));
+	}
 	public PluginListPage() {
-		add(JavascriptPackageResource.getHeaderContribution("javascripts/codemirror.js"));
-		add(JavascriptPackageResource.getHeaderContribution("javascripts/mode/python.js"));
-		add(JavascriptPackageResource.getHeaderContribution("javascripts/jquery.js"));
-		add(CSSPackageResource.getHeaderContribution("stylesheets/codemirror.css"));
-		add(CSSPackageResource.getHeaderContribution("stylesheets/theme/default.css"));
-
 		add(new Label("pageTitle", "プラグインの設定"));
 		pluginRegistryList = pluginRegistryService.findAll();
-		
+
 		final ModalWindow window = new ModalWindow("testWindow");
 		window.setTitle("test");
 		add(window);
@@ -132,7 +137,7 @@ public class PluginListPage extends BasePage {
 							pluginRegistryService.update(pluginRegistry);
 							PluginManager pluginManager = (PluginManager) WebApplication.get().getServletContext().getAttribute(WebdavServlet.PLUGIN_MANAGER_KEY);
 							pluginManager.loadPlugins();
-							target.addComponent(this);
+							target.add(this);
 						}
 					}.setOutputMarkupId(true))
 					.add(new AjaxButton("testButton") {
@@ -163,8 +168,9 @@ public class PluginListPage extends BasePage {
 						case TEXTAREA:
 							item.add(new AjaxEditableMultiLineLabel<PluginOptionEntry>("value", new PropertyModel<PluginOptionEntry>(option, "value")) {
 								private static final long serialVersionUID = 1L;
-								@Override protected void onEdit(AjaxRequestTarget target) {
-									target.appendJavascript("CodeMirror.fromTextArea($('.codemirror textarea')[0], {mode: {name: 'python',version: 2,singleLineStringErrors: false},onBlur:function(cm) {cm.save();$('.codemirror textarea').blur()},lineNumbers: true,indentUnit: 4,tabMode: 'shift',matchBrackets: true});");
+								@Override
+								public void onEdit(AjaxRequestTarget target) {
+									target.appendJavaScript("CodeMirror.fromTextArea($('.codemirror textarea')[0], {mode: {name: 'python',version: 2,singleLineStringErrors: false},onBlur:function(cm) {cm.save();$('.codemirror textarea').blur()},lineNumbers: true,indentUnit: 4,tabMode: 'shift',matchBrackets: true});");
 									super.onEdit(target);
 								}
 								@Override protected void onSubmit(AjaxRequestTarget target) {
@@ -172,7 +178,7 @@ public class PluginListPage extends BasePage {
 									pluginRegistryService.update(pluginRegistry);
 									super.onSubmit(target);
 								}
-							}.add(new SimpleAttributeModifier("class", "codemirror")));
+							}.add(new AttributeModifier("class", "codemirror")));
 							break;
 						default:
 							item.add(new AjaxEditableLabel<PluginOptionEntry>("value", new PropertyModel<PluginOptionEntry>(option, "value")) {
@@ -255,12 +261,12 @@ public class PluginListPage extends BasePage {
 							optionList.add(option);
 						}
 						newClassWarning.setDefaultModelObject("");
-						target.addComponent(newClassWarning);
-						target.addComponent(newOptionsContainer);
+						target.add(newClassWarning);
+						target.add(newOptionsContainer);
 					} catch(Exception e) {
 						logger.warn("Plugin Class not found.", e);
 						newClassWarning.setDefaultModelObject("Not found " + newClass.getInput() + " in classpath");
-						target.addComponent(newClassWarning);
+						target.add(newClassWarning);
 					}
 				}
 

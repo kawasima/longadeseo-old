@@ -8,10 +8,10 @@ import net.unit8.longadeseo.service.DirectoryService;
 import org.apache.wicket.markup.html.basic.Label;
 import org.apache.wicket.markup.html.list.ListItem;
 import org.apache.wicket.markup.html.list.ListView;
-import org.apache.wicket.markup.html.list.PageableListView;
 
 import com.google.inject.Inject;
 
+@SuppressWarnings("serial")
 public class TreePage extends BasePage {
 	@Inject
 	DirectoryService directoryService;

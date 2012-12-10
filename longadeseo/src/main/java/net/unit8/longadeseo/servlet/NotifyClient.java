@@ -1,12 +1,12 @@
 /*******************************************************************************
  * Copyright 2011 kawasima
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -20,7 +20,8 @@ import java.net.URISyntaxException;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.eclipse.jetty.util.ajax.JSON;
+import net.arnx.jsonic.JSON;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -41,16 +42,16 @@ public class NotifyClient {
 			websocket = new WebSocketConnection(uri);
 			websocket.setEventHandler(new WebSocketEventHandler() {
 				public void onOpen() { /* do nothing */ }
-				
+
 				public void onMessage(WebSocketMessage message) { /* do nothing */ }
-				
+
 				public void onClose() {
 					try {
 						websocket.connect();
 					} catch (WebSocketException e) {
 						logger.error("Reconnect failure", e);
 					}
-					
+
 				}
 			});
 			websocket.connect();
@@ -65,13 +66,13 @@ public class NotifyClient {
 		data.put("username", username);
 		data.put("message", message);
 		try {
-			websocket.send(JSON.toString(data));
+			websocket.send(JSON.encode(data));
 		} catch (WebSocketException e) {
 			e.printStackTrace();
-			
+
 		}
 	}
-	
+
 	public void dispose() {
 		try {
 			websocket.close();

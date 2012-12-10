@@ -58,7 +58,6 @@ public class LongadeseoAccessManager extends AbstractAccessControlManager
 
 	private AccessControlEditor editor;
 
-	private PrivilegeRegistry privilegeRegistry;
 	private PrivilegeManager privilegeManager;
 
 	/**
@@ -112,16 +111,15 @@ public class LongadeseoAccessManager extends AbstractAccessControlManager
 		} else {
 			principals = subject.getPrincipals();
 		}
-
+/*
 		if (StringUtils.equals("longadeseo", amContext.getWorkspaceName())) {
 			principals.add(new SystemPrincipal());
 		}
 		principals.add(new AdminPrincipal("admin"));
-
+*/
 		wspAccess = new WorkspaceAccess(wspAccessManager,
 				isSystemOrAdmin(subject));
 		privilegeManager = amContext.getPrivilegeManager();
-		privilegeRegistry = new PrivilegeRegistry(resolver);
 
 		if (acProvider != null) {
 			editor = acProvider.getEditor(amContext.getSession());
@@ -262,15 +260,14 @@ public class LongadeseoAccessManager extends AbstractAccessControlManager
 			throws PathNotFoundException, RepositoryException {
 		checkInitialized();
 		checkValidNodePath(absPath);
-		if (privileges == null || privileges.length == 0) {
-			// null or empty privilege array -> return true
-			log.debug("No privileges passed -> allowed.");
-			return true;
-		} else {
-			int privs = PrivilegeRegistry.getBits(privileges);
-			Path p = resolver.getQPath(absPath);
-			return (compiledPermissions.getPrivileges(p) | ~privs) == -1;
-		}
+        if (privileges == null || privileges.length == 0) {
+            // null or empty privilege array -> return true
+            log.debug("No privileges passed -> allowed.");
+            return true;
+        } else {
+            Path p = getPath(absPath);
+            return compiledPermissions.hasPrivileges(p, privileges);
+        }
 	}
 
 	/**
@@ -280,10 +277,8 @@ public class LongadeseoAccessManager extends AbstractAccessControlManager
 			throws PathNotFoundException, RepositoryException {
 		checkInitialized();
 		checkValidNodePath(absPath);
-		int bits = compiledPermissions
-				.getPrivileges(resolver.getQPath(absPath));
-		return (bits == PrivilegeRegistry.NO_PRIVILEGE) ? new Privilege[0]
-				: privilegeRegistry.getPrivileges(bits);
+        Set<Privilege> privs = compiledPermissions.getPrivilegeSet(getPath(absPath));
+        return privs.toArray(new Privilege[privs.size()]);
 	}
 
 	/**
@@ -430,21 +425,19 @@ public class LongadeseoAccessManager extends AbstractAccessControlManager
 		checkValidNodePath(absPath);
 		checkPermission(absPath, Permission.READ_AC);
 
-		if (privileges == null || privileges.length == 0) {
-			// null or empty privilege array -> return true
-			log.debug("No privileges passed -> allowed.");
-			return true;
-		} else {
-			int privs = PrivilegeRegistry.getBits(privileges);
-			Path p = resolver.getQPath(absPath);
-			CompiledPermissions perms = acProvider
-					.compilePermissions(principals);
-			try {
-				return (perms.getPrivileges(p) | ~privs) == -1;
-			} finally {
-				perms.close();
-			}
-		}
+	       if (privileges == null || privileges.length == 0) {
+	            // null or empty privilege array -> return true
+	            log.debug("No privileges passed -> allowed.");
+	            return true;
+	        } else {
+	            Path p = getPath(absPath);
+	            CompiledPermissions perms = acProvider.compilePermissions(principals);
+	            try {
+	                return perms.hasPrivileges(p, privileges);
+	            } finally {
+	                perms.close();
+	            }
+	        }
 	}
 
 	/**
@@ -458,13 +451,12 @@ public class LongadeseoAccessManager extends AbstractAccessControlManager
 		checkPermission(absPath, Permission.READ_AC);
 
 		CompiledPermissions perms = acProvider.compilePermissions(principals);
-		try {
-			int bits = perms.getPrivileges(resolver.getQPath(absPath));
-			return (bits == PrivilegeRegistry.NO_PRIVILEGE) ? new Privilege[0]
-					: privilegeRegistry.getPrivileges(bits);
-		} finally {
-			perms.close();
-		}
+        try {
+            Set<Privilege> privs = perms.getPrivilegeSet(getPath(absPath));
+            return privs.toArray(new Privilege[privs.size()]);
+        } finally {
+            perms.close();
+        }
 	}
 
 	// ---------------------------------------< AbstractAccessControlManager
