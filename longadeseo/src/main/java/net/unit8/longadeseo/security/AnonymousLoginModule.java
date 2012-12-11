@@ -7,8 +7,11 @@ import javax.security.auth.callback.CallbackHandler;
 import javax.security.auth.login.LoginException;
 import javax.security.auth.spi.LoginModule;
 
-public class AnonymousLoginModule implements LoginModule {
+import org.apache.jackrabbit.core.security.SystemPrincipal;
+import org.apache.jackrabbit.core.security.principal.AdminPrincipal;
 
+public class AnonymousLoginModule implements LoginModule {
+	private Subject subject;
 	public boolean abort() throws LoginException {
 		return true;
 	}
@@ -18,10 +21,13 @@ public class AnonymousLoginModule implements LoginModule {
 	}
 
 	public void initialize(Subject subject, CallbackHandler cb,
-			Map<String, ?> arg2, Map<String, ?> arg3) {
+			Map<String, ?> sharedState, Map<String, ?> options) {
+		this.subject = subject;
 	}
 
 	public boolean login() throws LoginException {
+		subject.getPrincipals().add(new SystemPrincipal());
+		subject.getPrincipals().add(new AdminPrincipal("admin"));
 		return true;
 	}
 

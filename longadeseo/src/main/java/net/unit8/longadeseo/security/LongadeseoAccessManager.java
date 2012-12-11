@@ -111,12 +111,6 @@ public class LongadeseoAccessManager extends AbstractAccessControlManager
 		} else {
 			principals = subject.getPrincipals();
 		}
-/*
-		if (StringUtils.equals("longadeseo", amContext.getWorkspaceName())) {
-			principals.add(new SystemPrincipal());
-		}
-		principals.add(new AdminPrincipal("admin"));
-*/
 		wspAccess = new WorkspaceAccess(wspAccessManager,
 				isSystemOrAdmin(subject));
 		privilegeManager = amContext.getPrivilegeManager();
