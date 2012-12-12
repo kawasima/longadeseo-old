@@ -71,18 +71,16 @@ public class SearchService implements Serializable {
 			try {
 				Query query = jcrSession.getWorkspace().getQueryManager()
 						.createQuery(stmt, Query.XPATH);
+//				query.bindValue("keyword", jcrSession.getValueFactory().createValue(q));
 				RowIterator iter = query.execute().getRows();
 				for (; iter.hasNext();) {
 					Row row = iter.nextRow();
-					Node file = (Node) jcrSession.getItem(row.getValue(
-							"jcr:path").getString());
+					Node file = row.getNode();
 					Node resource = file.getNode("jcr:content");
 
 					SearchResultDto dto = new SearchResultDto();
 					dto.setPath(file.getPath());
 					dto.setTitle(Text.encodeIllegalXMLCharacters(file.getName()));
-					dto.setExcerpt(row.getValue("rep:excerpt(jcr:content)")
-							.getString());
 					dto.setLastModified(resource
 							.getProperty("jcr:lastModified").getDate());
 					dto.setSize(resource.getProperty("jcr:data").getLength());
