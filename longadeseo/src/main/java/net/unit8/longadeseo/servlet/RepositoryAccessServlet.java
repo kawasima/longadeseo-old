@@ -1,12 +1,12 @@
 /*******************************************************************************
  * Copyright 2011 kawasima
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -30,16 +30,11 @@ import javax.naming.InitialContext;
 import javax.naming.NamingException;
 import javax.servlet.ServletContext;
 import javax.servlet.ServletException;
-import javax.servlet.annotation.WebInitParam;
-import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServlet;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@WebServlet(urlPatterns="/access/*", loadOnStartup=3, initParams={
-	@WebInitParam(name="bootstrap-config", value="/jackrabbit/bootstrap.properties")
-})
 public class RepositoryAccessServlet extends HttpServlet {
 	private static final long serialVersionUID = 7581078648840971304L;
 	@SuppressWarnings("unused")

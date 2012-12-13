@@ -10,38 +10,39 @@
 </head>
 <body>
 	<wicket:extend>
-	<p><wicket:message key="lead">lead</wicket:message></p>
+	<p class="well"><wicket:message key="lead">lead</wicket:message></p>
 	<ol>
 		<li id="pluginRegistryList" wicket:id="pluginRegistryList">
-			<form wicket:id="pluginUpdateForm">
-			<dl>
-				<dt><wicket:message key="plugin.name">Name</wicket:message></dt>
-				<dd><span wicket:id="name">Excelの編集者を抜き出し一覧化します</span></dd>
+			<form class="form-horizontal" wicket:id="pluginUpdateForm">
+				<div class="row">
+					<label class="span3"><wicket:message key="plugin.name">Name</wicket:message></label>
+					<span class="span8" wicket:id="name">Excelの編集者を抜き出し一覧化します</span>
+				</div>
+				<div class="row">
+					<label class="span3"><wicket:message key="plugin.class">プラグインの実装</wicket:message></label>
+					<span class="span8" wicket:id="pluginClass">longadeseo.plugin.JRubyExcelPlugin</span>
+				</div>
 
-				<dt><wicket:message key="plugin.class">プラグインの実装</wicket:message></dt>
-				<dd><span wicket:id="pluginClass">longadeseo.plugin.JRubyExcelPlugin</span></dd>
+				<div class="row">
+					<label class="span3"><wicket:message key="plugin.description">Description</wicket:message></label>
+					<span class="span8" wicket:id="description">Excelシートの中から</span>
+				</div>
 
-				<dt><wicket:message key="plugin.description">Description</wicket:message></dt>
-				<dd>
-					<span wicket:id="description">Excelシートの中から</span>
-				</dd>
-
-				<dt><wicket:message key="plugin.includes">applicable scope</wicket:message></dt>
-				<dd><span wicket:id="pluginIncludes">/**</span></dd>
+				<div class="row">
+					<label class="span3"><wicket:message key="plugin.includes">applicable scope</wicket:message></label>
+					<span class="span8" wicket:id="pluginIncludes">/**</span>
+				</div>
 
 				<div wicket:id="optionsContainer">
-					<div wicket:id="options">
-						<dt><span wicket:id="name">option name</span></dt>
-						<dd>
-							<span wicket:id="value">option value</span>
-						</dd>
+					<div class="row" wicket:id="options">
+						<span class="span3" wicket:id="name">option name</span>
+						<span class="span8" wicket:id="value">option value</span>
 					</div>
 				</div>
-			</dl>
-			<div>
-				<input type="submit" wicket:id="deleteButton" value="Delete"/>
-				<input type="button" wicket:id="activeButton" value="Inactive"/>
-				<input type="button" wicket:id="testButton" value="Test"/>
+			<div class="form-actions">
+				<input type="button" class="btn" wicket:id="activeButton" value="Inactive"/>
+				<input type="button" class="btn" wicket:id="testButton" value="Test"/>
+				<input type="submit" class="btn btn-danger" wicket:id="deleteButton" value="Delete"/>
 			</div>
 			</form>
 		</li>

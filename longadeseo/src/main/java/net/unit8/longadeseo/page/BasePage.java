@@ -26,8 +26,8 @@ import org.apache.wicket.request.resource.CssResourceReference;
 
 @SuppressWarnings("serial")
 public class BasePage extends WebPage {
-	private static final CssResourceReference STYLE_CSS = new CssResourceReference(BasePage.class, "style.css");
-	private static final CssResourceReference BOOTSTRAP_CSS = new CssResourceReference(BasePage.class, "bootstrap-custom.css");
+	private static final CssResourceReference STYLE_CSS = new CssResourceReference(BasePage.class, "css/style.css");
+	private static final CssResourceReference BOOTSTRAP_CSS = new CssResourceReference(BasePage.class, "css/bootstrap-custom.css");
 
 	@Override
 	public void renderHead(IHeaderResponse response) {

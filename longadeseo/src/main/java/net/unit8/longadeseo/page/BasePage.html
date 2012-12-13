@@ -10,7 +10,7 @@
 	<script type="text/javascript">
 window.onload = function() {
 	if(window.WebSocket) {
-		var ws = new WebSocket("ws://localhost:9090/longadeseo/webdav-message?username=kawasima");
+		var ws = new WebSocket("ws://localhost:8091/longadeseo/webdav-message?username=admin");
 		ws.addEventListener( "message", function(event) {
 			var obj = eval('('+event.data+')');
 			alert(obj.message);
@@ -27,9 +27,8 @@ window.onload = function() {
 <div class="container">
 	<div class="navbar navbar-fixed-top">
 		<div class="navbar-inner">
-		<a class="brand">Longadeseo</a>
+		<a href="/longadeseo/app" class="brand">Longadeseo</a>
 		<ul class="nav pull-right">
-			<li><a href="#">Users</a></li>
 			<li><a href="#" wicket:id="linkToDirectoryList">Documents</a></li>
 			<li><a href="#" wicket:id="linkToPluginRegistry">Settings</a></li>
 		</ul>

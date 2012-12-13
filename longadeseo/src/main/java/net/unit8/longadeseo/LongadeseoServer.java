@@ -1,29 +1,27 @@
 package net.unit8.longadeseo;
 
-import java.io.File;
-
-import org.apache.catalina.core.AprLifecycleListener;
-import org.apache.catalina.core.StandardServer;
-import org.apache.catalina.startup.Tomcat;
+import org.eclipse.jetty.server.Server;
+import org.eclipse.jetty.server.nio.SelectChannelConnector;
+import org.eclipse.jetty.webapp.WebAppContext;
 
 public class LongadeseoServer {
 	public static void main(String[] args) throws Exception {
-		String appBase = new File("src/main/webapp").getAbsolutePath();
 		Integer port = 8091;
 		String contextPath = "/longadeseo";
 
-		Tomcat tomcat = new Tomcat();
-		tomcat.setPort(port);
+		Server server = new Server();
+		SelectChannelConnector connector = new SelectChannelConnector();
+		connector.setPort(port);
+		server.addConnector(connector);
 
-		tomcat.setBaseDir(".");
-		tomcat.getHost().setAppBase(appBase);
+		WebAppContext webapp = new WebAppContext();
+		webapp.setContextPath(contextPath);
+		webapp.setResourceBase("src/main/webapp");
+		webapp.setParentLoaderPriority(true);
 
-		StandardServer server = (StandardServer) tomcat.getServer();
-		AprLifecycleListener listener = new AprLifecycleListener();
-		server.addLifecycleListener(listener);
+		server.setHandler(webapp);
 
-		tomcat.addWebapp(contextPath, appBase);
-		tomcat.start();
-		tomcat.getServer().await();
+		server.start();
+		server.join();
 	}
 }

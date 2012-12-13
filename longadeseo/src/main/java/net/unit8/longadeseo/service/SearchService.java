@@ -65,8 +65,9 @@ public class SearchService implements Serializable {
 				queryTerms = "for <b>" + Text.encodeIllegalXMLCharacters(q)
 						+ "</b>";
 				q = q.replaceAll("'", "''");
-				stmt = "//element(*, nt:file)[jcr:contains(jcr:content, '" + q
-						+ "')]/rep:excerpt(.) order by @jcr:score descending";
+				stmt = "//element(*, nt:file)[jcr:contains(jcr:content, '" + q + "')]"
+						+ "/rep:excerpt(.) order by @jcr:score descending";
+
 			}
 			try {
 				Query query = jcrSession.getWorkspace().getQueryManager()
@@ -80,6 +81,7 @@ public class SearchService implements Serializable {
 
 					SearchResultDto dto = new SearchResultDto();
 					dto.setPath(file.getPath());
+					dto.setExcerpt(row.getValue("rep:excerpt(jcr:content)").getString());
 					dto.setTitle(Text.encodeIllegalXMLCharacters(file.getName()));
 					dto.setLastModified(resource
 							.getProperty("jcr:lastModified").getDate());

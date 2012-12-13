@@ -3,6 +3,33 @@
 	xsi:schemaLocation="http://java.sun.com/xml/ns/javaee http://java.sun.com/xml/ns/javaee/web-app_3_0.xsd"
 	metadata-complete="true">
 
+    <servlet>
+        <servlet-name>RepositoryStartup</servlet-name>
+        <servlet-class>net.unit8.longadeseo.servlet.RepositoryStartupServlet</servlet-class>
+
+        <init-param>
+            <param-name>bootstrap-config</param-name>
+            <param-value>/jackrabbit/bootstrap.properties</param-value>
+        </init-param>
+        <load-on-startup>2</load-on-startup>
+    </servlet>
+
+    <!-- ====================================================================== -->
+    <!-- R E P O S I T O R Y   S E R V L E T                                    -->
+    <!-- ====================================================================== -->
+    <servlet>
+        <servlet-name>Repository</servlet-name>
+        <servlet-class>net.unit8.longadeseo.servlet.RepositoryAccessServlet</servlet-class>
+
+        <init-param>
+            <param-name>bootstrap-config</param-name>
+            <param-value>/jackrabbit/bootstrap.properties</param-value>
+        </init-param>
+
+        <load-on-startup>3</load-on-startup>
+    </servlet>
+
+
 	<servlet>
 		<servlet-name>webdav</servlet-name>
 		<servlet-class>net.unit8.longadeseo.servlet.WebdavServlet</servlet-class>
@@ -29,6 +56,10 @@
 		<servlet-class>net.unit8.longadeseo.servlet.WebdavErrorNotifyServlet</servlet-class>
 	</servlet>
 
+	<servlet-mapping>
+		<servlet-name>RepositoryStartup</servlet-name>
+		<url-pattern>/admin/*</url-pattern>
+	</servlet-mapping>
 
 	<servlet-mapping>
 		<servlet-name>webdav</servlet-name>

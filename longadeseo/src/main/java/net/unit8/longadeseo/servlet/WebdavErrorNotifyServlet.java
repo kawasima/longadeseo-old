@@ -17,8 +17,8 @@ package net.unit8.longadeseo.servlet;
 
 import javax.servlet.http.HttpServletRequest;
 
-import org.apache.catalina.websocket.StreamInbound;
-import org.apache.catalina.websocket.WebSocketServlet;
+import org.eclipse.jetty.websocket.WebSocket;
+import org.eclipse.jetty.websocket.WebSocketServlet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -27,9 +27,7 @@ public class WebdavErrorNotifyServlet extends WebSocketServlet {
 	@SuppressWarnings("unused")
 	private static final Logger logger = LoggerFactory.getLogger(WebdavErrorNotifyServlet.class);
 
-	@Override
-	protected StreamInbound createWebSocketInbound(String subProtocol,
-			HttpServletRequest request) {
+	public WebSocket doWebSocketConnect(HttpServletRequest request, String protocol) {
 		String username = request.getParameter("username");
 		if(username == null)
 			return null;

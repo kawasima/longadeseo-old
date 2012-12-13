@@ -68,8 +68,8 @@ import com.google.inject.Inject;
 @SuppressWarnings("serial")
 public class PluginListPage extends BasePage {
 	private static final Logger logger = LoggerFactory.getLogger(PluginListPage.class);
-	private static final JavaScriptResourceReference CODEMIRROR_JS = new JavaScriptResourceReference(PluginListPage.class, "codemirror.js");
-	private static final CssResourceReference CODEMIRROR_CSS = new CssResourceReference(PluginListPage.class, "codemirror.css");
+	private static final JavaScriptResourceReference CODEMIRROR_JS = new JavaScriptResourceReference(BasePage.class, "js/codemirror.js");
+	private static final CssResourceReference CODEMIRROR_CSS = new CssResourceReference(BasePage.class, "css/codemirror.css");
 
 	@Inject
 	PluginRegistryService pluginRegistryService;
@@ -78,6 +78,7 @@ public class PluginListPage extends BasePage {
 
 	@Override
 	public void renderHead(IHeaderResponse response) {
+		super.renderHead(response);
 		response.render(JavaScriptReferenceHeaderItem.forReference(CODEMIRROR_JS));
 		response.render(CssReferenceHeaderItem.forReference(CODEMIRROR_CSS));
 	}

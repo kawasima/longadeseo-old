@@ -16,23 +16,20 @@
 package net.unit8.longadeseo.servlet;
 
 import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.nio.CharBuffer;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArraySet;
 
 import net.arnx.jsonic.JSON;
 
-import org.apache.catalina.websocket.MessageInbound;
-import org.apache.catalina.websocket.WsOutbound;
 import org.apache.commons.lang.StringUtils;
+import org.eclipse.jetty.websocket.WebSocket;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class NotifySocket extends MessageInbound {
+public class NotifySocket implements WebSocket, WebSocket.OnTextMessage {
 	private static final Logger logger = LoggerFactory.getLogger(NotifySocket.class);
-	private WsOutbound outbound;
+	private Connection connection;
 	private static Set<NotifySocket> sockets = new CopyOnWriteArraySet<NotifySocket>();
 	private String username;
 
@@ -40,35 +37,32 @@ public class NotifySocket extends MessageInbound {
 		this.username = username;
 	}
 
-	@Override
-	public void onOpen(WsOutbound outbound) {
+	public void onOpen(Connection connection) {
 		logger.debug("connect:" + username);
-		this.outbound = outbound;
+		this.connection = connection;
 		sockets.add(this);
 	}
 
-	@Override
-	public void onClose(int status) {
+	public void onClose(int status, String message) {
 		logger.debug("close:" + username);
 		sockets.remove(this);
 	}
 
-	@Override
-	public void onTextMessage(CharBuffer cb) throws IOException {
-		logger.debug("message:" + cb);
-		Object obj = JSON.decode(cb.toString());
+	public void onMessage(String msg) {
+		logger.debug("message:" + msg);
+		Object obj = JSON.decode(msg.toString());
 		if(obj instanceof Map) {
 			Map<String, String> msgObj = (Map<String, String>)obj;
 			String targetUsername = msgObj.get("username");
 			for(NotifySocket socket : sockets) {
 				if(!StringUtils.equals(socket.username, targetUsername))
 					continue;
-				socket.outbound.writeTextMessage(cb);
+				try {
+					socket.connection.sendMessage(msg);
+				} catch (IOException e) {
+					throw new RuntimeException(e);
+				}
 			}
 		}
-	}
-
-	@Override
-	protected void onBinaryMessage(ByteBuffer message) throws IOException {
 	}
 }

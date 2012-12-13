@@ -15,69 +15,66 @@
  ******************************************************************************/
 package net.unit8.longadeseo.servlet;
 
+import java.io.IOException;
 import java.net.URI;
-import java.net.URISyntaxException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.Future;
 
 import net.arnx.jsonic.JSON;
 
+import org.eclipse.jetty.websocket.WebSocket;
+import org.eclipse.jetty.websocket.WebSocket.Connection;
+import org.eclipse.jetty.websocket.WebSocketClient;
+import org.eclipse.jetty.websocket.WebSocketClientFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import de.roderick.weberknecht.WebSocket;
-import de.roderick.weberknecht.WebSocketConnection;
-import de.roderick.weberknecht.WebSocketEventHandler;
-import de.roderick.weberknecht.WebSocketException;
-import de.roderick.weberknecht.WebSocketMessage;
-
 public class NotifyClient {
 	private static final Logger logger = LoggerFactory.getLogger(NotifyClient.class);
-	private WebSocket websocket;
+	private WebSocketClientFactory webSocketClientFactory;
+	private Connection connection;
 
 	public NotifyClient() {
 		URI uri;
 		try {
-			uri = new URI("ws://localhost:9090/longadeseo/webdav-message?username=longadeseo-notifier");
-			websocket = new WebSocketConnection(uri);
-			websocket.setEventHandler(new WebSocketEventHandler() {
-				public void onOpen() { /* do nothing */ }
+			uri = new URI("ws://localhost:8091/longadeseo/webdav-message?username=longadeseo-notifier");
+			webSocketClientFactory = new WebSocketClientFactory();
+			webSocketClientFactory.start();
 
-				public void onMessage(WebSocketMessage message) { /* do nothing */ }
+			WebSocketClient client = webSocketClientFactory.newWebSocketClient();
+			Future<Connection> futureConnection =
+				    client.open(uri, new WebSocket.OnTextMessage() {
 
-				public void onClose() {
-					try {
-						websocket.connect();
-					} catch (WebSocketException e) {
-						logger.error("Reconnect failure", e);
-					}
+						public void onOpen(Connection connection) { /* Do nothing */ }
 
-				}
-			});
-			websocket.connect();
-		} catch (URISyntaxException e) {
-			logger.error("", e);
-		} catch (WebSocketException e) {
+						public void onClose(int closeCode, String message) { /* Do nothing*/ }
+
+						public void onMessage(String data) { /* Do nothing */ }
+				    });
+			connection = futureConnection.get();
+		} catch (Exception e) {
 			logger.error("", e);
 		}
 	}
+
 	public void send(String username, String message) {
 		Map<String, String> data = new HashMap<String, String>();
 		data.put("username", username);
 		data.put("message", message);
 		try {
-			websocket.send(JSON.encode(data));
-		} catch (WebSocketException e) {
-			e.printStackTrace();
-
+			connection.sendMessage(JSON.encode(data));
+		} catch (IOException e) {
+			logger.error("", e);
 		}
 	}
 
 	public void dispose() {
+		connection.close();
 		try {
-			websocket.close();
-		} catch (WebSocketException e) {
-			logger.error("Notify client is disconnected.", e);
+			webSocketClientFactory.stop();
+		} catch (Exception e) {
+			logger.error("Failure to stop WebSocketClientFactory", e);
 		}
 	}
 }
