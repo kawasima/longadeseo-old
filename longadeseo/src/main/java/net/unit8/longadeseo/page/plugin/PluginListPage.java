@@ -69,6 +69,7 @@ import com.google.inject.Inject;
 public class PluginListPage extends BasePage {
 	private static final Logger logger = LoggerFactory.getLogger(PluginListPage.class);
 	private static final JavaScriptResourceReference CODEMIRROR_JS = new JavaScriptResourceReference(BasePage.class, "js/codemirror.js");
+	private static final JavaScriptResourceReference CODEMIRROR_RUBY_JS = new JavaScriptResourceReference(BasePage.class, "js/mode/ruby/ruby.js");
 	private static final CssResourceReference CODEMIRROR_CSS = new CssResourceReference(BasePage.class, "css/codemirror.css");
 
 	@Inject
@@ -80,6 +81,7 @@ public class PluginListPage extends BasePage {
 	public void renderHead(IHeaderResponse response) {
 		super.renderHead(response);
 		response.render(JavaScriptReferenceHeaderItem.forReference(CODEMIRROR_JS));
+		response.render(JavaScriptReferenceHeaderItem.forReference(CODEMIRROR_RUBY_JS));
 		response.render(CssReferenceHeaderItem.forReference(CODEMIRROR_CSS));
 	}
 	public PluginListPage() {
@@ -161,17 +163,19 @@ public class PluginListPage extends BasePage {
 					private static final long serialVersionUID = 1L;
 
 					@Override
-					protected void populateItem(ListItem<PluginOptionEntry> item) {
+					protected void populateItem(final ListItem<PluginOptionEntry> item) {
 						final PluginOptionEntry option = item.getModelObject();
 						item.add(new Label("name", option.getLabel()));
-
 						switch(option.getFormType()) {
 						case TEXTAREA:
 							item.add(new AjaxEditableMultiLineLabel<PluginOptionEntry>("value", new PropertyModel<PluginOptionEntry>(option, "value")) {
 								private static final long serialVersionUID = 1L;
 								@Override
 								public void onEdit(AjaxRequestTarget target) {
-									target.appendJavaScript("CodeMirror.fromTextArea($('.codemirror textarea')[0], {mode: {name: 'python',version: 2,singleLineStringErrors: false},onBlur:function(cm) {cm.save();$('.codemirror textarea').blur()},lineNumbers: true,indentUnit: 4,tabMode: 'shift',matchBrackets: true});");
+									String selector = ".codemirror:eq(" + (item.getIndex() - 1) + ") textarea";
+									target.appendJavaScript("CodeMirror.fromTextArea($('" + selector +
+											"')[0], {mode: 'text/x-ruby', lineNumbers: true,indentUnit: 2,tabMode: 'shift',matchBrackets: true})" +
+											".on('blur', function(cm) { cm.save(); $('"+ selector +"').trigger('blur') });");
 									super.onEdit(target);
 								}
 								@Override protected void onSubmit(AjaxRequestTarget target) {
@@ -229,13 +233,21 @@ public class PluginListPage extends BasePage {
 				private static final long serialVersionUID = 1L;
 				@Override
 				protected void populateItem(ListItem<PluginOptionEntry> item) {
-					PluginOptionEntry option = item.getModelObject();
+					final PluginOptionEntry option = item.getModelObject();
 					item.add(new Label("optionNameLabel",  option.getLabel()));
 					item.add(new HiddenField<String>("name"));
 					Object value = option.getValue();
 					if(value == null)
 						value = "";
-					item.add(new TextField<String>("value"));
+					switch(option.getFormType()) {
+					case TEXTAREA:
+						item.add(new TextArea<String>("value")
+								.add(new AttributeModifier("class", "codemirror")));
+						break;
+					default:
+						item.add(new TextField<String>("value"));
+						break;
+					}
 				}
 				@Override
 				protected IModel<PluginOptionEntry> getListItemModel(IModel<? extends List<PluginOptionEntry>> model, int i) {
@@ -264,6 +276,10 @@ public class PluginListPage extends BasePage {
 						newClassWarning.setDefaultModelObject("");
 						target.add(newClassWarning);
 						target.add(newOptionsContainer);
+						String selector = ".codemirror[name^=newOptionsContainer\\\\:newOptions]";
+						target.appendJavaScript("if ($('"+selector+"').size() > 0) { CodeMirror.fromTextArea($('" + selector +
+								"')[0], {mode: 'text/x-ruby', lineNumbers: true,indentUnit: 2,tabMode: 'shift',matchBrackets: true})" +
+								".on('blur', function(cm) { cm.save(); $('"+ selector +"').trigger('blur') });}");
 					} catch(Exception e) {
 						logger.warn("Plugin Class not found.", e);
 						newClassWarning.setDefaultModelObject("Not found " + newClass.getInput() + " in classpath");
@@ -279,8 +295,9 @@ public class PluginListPage extends BasePage {
 		public void onSubmit() {
 			ValueMap values = getModelObject();
 			PluginRegistry pluginRegistry = new PluginRegistry();
-			pluginRegistry.setName(values.get("newName").toString());
-			pluginRegistry.setDescription(values.get("newDescription").toString());
+			pluginRegistry.setName(values.getString("newName"));
+			pluginRegistry.setDescription(values.getString("newDescription"));
+			pluginRegistry.setIncludes(values.getString("newIncludes").split("\n"));
 			try {
 				@SuppressWarnings("unchecked")
 				Class<? extends Plugin> pluginClass = (Class<? extends Plugin>)Class.forName(values.get("newClass").toString());
